@@ -1,4 +1,3 @@
-local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = cloneref(game:GetService("CoreGui"))
@@ -300,6 +299,5 @@ return {
     PaintBtn = PaintBtn,
     WhiteBtn = WhiteBtn,
     BlackBtn = BlackBtn,
-    Status = Status,
-    Theme = Theme
+    Status = Status
 }
