@@ -1,0 +1,305 @@
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = cloneref(game:GetService("CoreGui"))
+
+local Theme = {
+    WindowBg = Color3.fromRGB(23, 23, 26),
+    TitleBar = Color3.fromRGB(33, 33, 36),
+    HeaderBg = Color3.fromRGB(43, 43, 48),
+    InputBg = Color3.fromRGB(18, 18, 20),
+    ButtonBg = Color3.fromRGB(53, 53, 59),
+    Text = Color3.fromRGB(230, 230, 235),
+    Border = Color3.fromRGB(60, 60, 65)
+}
+local F = Enum.Font.RobotoMono
+
+local function new(c, pr, props)
+    local i = Instance.new(c, pr)
+    for k, v in pairs(props) do
+        if k == "_cr" then
+            local x = Instance.new("UICorner", i)
+            x.CornerRadius = v
+        elseif k == "_st" then
+            local x = Instance.new("UIStroke", i)
+            x.Color = Theme.Border
+            x.Thickness = 1
+            x.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        else
+            i[k] = v
+        end
+    end
+    return i
+end
+
+local function tw(o, info, p, cb)
+    local t = TweenService:Create(o, info, p)
+    if cb then t.Completed:Connect(cb) end
+    t:Play()
+    return t
+end
+
+local ScreenGui = new("ScreenGui", CoreGui, {
+    Name = "ArtPainterV3_ReGui",
+    ResetOnSpawn = false
+})
+
+local Main = new("Frame", ScreenGui, {
+    Name = "Plane Crazy",
+    Size = UDim2.new(0, 340, 0, 175),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.new(1, -300, 0.4, 0),
+    BackgroundColor3 = Theme.WindowBg,
+    BackgroundTransparency = 0.05,
+    ClipsDescendants = true,
+    Active = true,
+    Visible = false,
+    _cr = UDim.new(0, 5),
+    _st = true
+})
+
+local MainScale = new("UIScale", Main, { Scale = 0 })
+
+local function Toggle(v)
+    if v then
+        Main.Visible = true
+        tw(MainScale, TweenInfo.new(0.2, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), { Scale = 0.85 })
+    else
+        tw(MainScale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Scale = 0 }, function()
+            if MainScale.Scale == 0 then Main.Visible = false end
+        end)
+    end
+end
+
+local TitleBar = new("Frame", Main, {
+    Size = UDim2.new(1, 0, 0, 26),
+    BackgroundColor3 = Theme.TitleBar,
+    BorderSizePixel = 0
+})
+
+local Dragging, DragInput, DragStart, StartPos
+TitleBar.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        Dragging = true
+        DragStart = i.Position
+        StartPos = Main.Position
+        i.Changed:Connect(function()
+            if i.UserInputState == Enum.UserInputState.End then Dragging = false end
+        end)
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
+        DragInput = i
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(i)
+    if i == DragInput and Dragging then
+        local d = i.Position - DragStart
+        tw(Main, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + d.X, StartPos.Y.Scale, StartPos.Y.Offset + d.Y)
+        })
+    end
+end)
+
+local IsCollapsed = false
+local TitleIcon = new("TextButton", TitleBar, {
+    Text = "▼",
+    TextColor3 = Theme.Text,
+    Size = UDim2.new(0, 24, 1, 0),
+    Position = UDim2.new(0, 6, 0, 0),
+    BackgroundTransparency = 1,
+    Font = F,
+    TextSize = 12
+})
+
+local TitleLabel = new("TextLabel", TitleBar, {
+    Text = "Plane Crazy",
+    TextColor3 = Theme.Text,
+    Size = UDim2.new(1, -60, 1, 0),
+    Position = UDim2.new(0, 32, 0, 0),
+    BackgroundTransparency = 1,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    Font = F,
+    TextSize = 13
+})
+
+TitleIcon.MouseButton1Click:Connect(function()
+    IsCollapsed = not IsCollapsed
+    TitleIcon.Text = IsCollapsed and "▶" or "▼"
+    tw(TitleLabel, TweenInfo.new(0.2, Enum.EasingStyle.Cubic), {
+        Position = IsCollapsed and UDim2.new(0, 32, 0, -1) or UDim2.new(0, 32, 0, 0)
+    })
+    tw(Main, TweenInfo.new(0.2, Enum.EasingStyle.Cubic), {
+        Size = IsCollapsed and UDim2.new(0, 340, 0, 26) or UDim2.new(0, 340, 0, 175)
+    })
+end)
+
+new("TextButton", TitleBar, {
+    Text = "X",
+    TextColor3 = Theme.Text,
+    Size = UDim2.new(0, 26, 1, 0),
+    Position = UDim2.new(1, -31, 0, 0),
+    BackgroundTransparency = 1,
+    Font = F,
+    TextSize = 15,
+    ZIndex = 10
+}).MouseButton1Click:Connect(function() Toggle(false) end)
+
+local Content = new("ScrollingFrame", Main, {
+    Size = UDim2.new(1, 0, 1, -26),
+    Position = UDim2.new(0, 0, 0, 26),
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    ScrollBarThickness = 3,
+    ScrollBarImageColor3 = Color3.fromRGB(80, 80, 85),
+    AutomaticCanvasSize = Enum.AutomaticSize.Y
+})
+
+new("UIPadding", Content, {
+    PaddingLeft = UDim.new(0, 8),
+    PaddingRight = UDim.new(0, 8),
+    PaddingTop = UDim.new(0, 6),
+    PaddingBottom = UDim.new(0, 6)
+})
+
+new("UIListLayout", Content, {
+    SortOrder = Enum.SortOrder.LayoutOrder,
+    Padding = UDim.new(0, 6)
+})
+
+local function Header(Text, Container)
+    local H = new("TextButton", Content, {
+        Size = UDim2.new(1, 0, 0, 20),
+        BackgroundColor3 = Theme.HeaderBg,
+        TextColor3 = Theme.Text,
+        Font = F,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BorderSizePixel = 0,
+        Text = "      " .. Text,
+        _cr = UDim.new(0, 3),
+        _st = true
+    })
+    new("UIPadding", H, { PaddingBottom = UDim.new(0, 2) })
+    local A = new("TextLabel", H, {
+        Size = UDim2.new(0, 24, 1, 0),
+        Position = UDim2.new(0, 4, 0, 0),
+        BackgroundTransparency = 1,
+        TextColor3 = Theme.Text,
+        Font = F,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Center
+    })
+    local Open = true
+    local fullH = Container.Size.Y.Offset
+    Container.ClipsDescendants = false
+    local function u() A.Text = Open and "▲" or "▶" end
+    u()
+    H.MouseButton1Click:Connect(function()
+        Open = not Open
+        u()
+        if Open then
+            Container.Visible = true
+            tw(Container, TweenInfo.new(0.2, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), { Size = UDim2.new(1, 0, 0, fullH) }, function()
+                if Open then Container.ClipsDescendants = false end
+            end)
+        else
+            Container.ClipsDescendants = true
+            tw(Container, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UDim2.new(1, 0, 0, 0) }, function()
+                if not Open then Container.Visible = false end
+            end)
+        end
+    end)
+end
+
+local ControlsMaster = new("Frame", Content, { Size = UDim2.new(1, 0, 0, 110), BackgroundTransparency = 1 })
+new("UIListLayout", ControlsMaster, { Padding = UDim.new(0, 6) })
+Header("Painter", ControlsMaster)
+
+local UrlContainer = new("Frame", ControlsMaster, { Size = UDim2.new(1, 0, 0, 22), BackgroundTransparency = 1 })
+new("TextLabel", UrlContainer, {
+    Size = UDim2.new(0, 70, 1, 0),
+    Position = UDim2.new(0, 15, 0, 0),
+    BackgroundTransparency = 1,
+    Text = "CDN URL:",
+    TextColor3 = Theme.Text,
+    Font = F,
+    TextSize = 12,
+    TextXAlignment = Enum.TextXAlignment.Left
+})
+new("UIPadding", UrlContainer, { PaddingBottom = UDim.new(0, 2) })
+
+local UrlInput = new("TextBox", UrlContainer, {
+    Size = UDim2.new(1, -90, 1, 0),
+    Position = UDim2.new(0, 90, 0, 0),
+    PlaceholderText = "Discord CDN Image Link...",
+    BackgroundColor3 = Theme.InputBg,
+    TextColor3 = Theme.Text,
+    Font = F,
+    TextSize = 11,
+    Text = "",
+    ClearTextOnFocus = false,
+    BorderSizePixel = 0,
+    TextXAlignment = Enum.TextXAlignment.Center,
+    ClipsDescendants = true,
+    TextTruncate = Enum.TextTruncate.AtEnd,
+    _cr = UDim.new(0, 3),
+    _st = true
+})
+UrlInput.Focused:Connect(function() UrlInput.Text = "" end)
+
+local BtnContainer = new("Frame", ControlsMaster, { Size = UDim2.new(1, 0, 0, 22), BackgroundTransparency = 1 })
+new("UIListLayout", BtnContainer, {
+    FillDirection = Enum.FillDirection.Horizontal,
+    HorizontalAlignment = Enum.HorizontalAlignment.Left,
+    VerticalAlignment = Enum.VerticalAlignment.Center,
+    Padding = UDim.new(0, 5),
+    SortOrder = Enum.SortOrder.LayoutOrder
+})
+
+local function MakeBtn(Text, Size, Order)
+    local Btn = new("TextButton", BtnContainer, {
+        Size = Size,
+        Text = Text,
+        BackgroundColor3 = Theme.ButtonBg,
+        TextColor3 = Theme.Text,
+        Font = F,
+        TextSize = 12,
+        BorderSizePixel = 0,
+        LayoutOrder = Order,
+        _cr = UDim.new(0, 3),
+        _st = true
+    })
+    new("UIPadding", Btn, { PaddingBottom = UDim.new(0, 2) })
+    Btn.MouseEnter:Connect(function() tw(Btn, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(65, 65, 73) }) end)
+    Btn.MouseLeave:Connect(function() tw(Btn, TweenInfo.new(0.1), { BackgroundColor3 = Theme.ButtonBg }) end)
+    return Btn
+end
+
+local PaintBtn = MakeBtn("Paint", UDim2.new(1, -140, 1, 0), 1)
+local WhiteBtn = MakeBtn("White", UDim2.new(0, 65, 1, 0), 2)
+local BlackBtn = MakeBtn("Black", UDim2.new(0, 65, 1, 0), 3)
+
+local Status = new("TextLabel", ControlsMaster, {
+    Size = UDim2.new(1, 0, 0, 24),
+    Text = "● Ready",
+    TextColor3 = Color3.fromRGB(120, 220, 150),
+    Font = F,
+    TextSize = 14.5,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    BackgroundTransparency = 1
+})
+new("UIPadding", Status, { PaddingTop = UDim.new(0, 25), PaddingLeft = UDim.new(0, 6) })
+
+return {
+    Toggle = Toggle,
+    UrlInput = UrlInput,
+    PaintBtn = PaintBtn,
+    WhiteBtn = WhiteBtn,
+    BlackBtn = BlackBtn,
+    Status = Status,
+    Theme = Theme
+}
